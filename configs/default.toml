@@ -11,6 +11,7 @@ max_candidate_failure_rate = 0.02
 min_failure_attempts = 50
 max_requests = 200000
 min_requests_before_promote = 0
+min_candidate_requests_before_promote = 500  # live exposure required before promotion
 on_inconclusive = "rollback"
 
 [[stages]]

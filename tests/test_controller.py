@@ -162,3 +162,14 @@ def test_snapshot_shape() -> None:
     assert len(snap["metrics"]) == 2
     assert len(ctrl.snapshots()) == 2
     assert ctrl.stage_index == 0
+
+
+def test_promotion_waits_for_candidate_exposure() -> None:
+    ctrl, _ = _ctrl(
+        promote_min_stage=1,
+        guardrails={"max_requests": 50_000, "min_candidate_requests_before_promote": 3000},
+    )
+    _drive(ctrl, 0.1, 0.0, seed=3)
+    assert ctrl.decision is not None
+    assert ctrl.decision.action is Action.PROMOTE
+    assert ctrl.decision.candidate_requests >= 3000

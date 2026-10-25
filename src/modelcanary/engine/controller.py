@@ -10,7 +10,9 @@ Decision order at every check point (first match wins):
    -> roll back immediately (no statistics needed).
 2. **Statistical rollback** -- any metric monitor says ``WORSE``.
 3. **Promotion** -- every metric says ``NOT_WORSE``, the current stage is at or
-   past ``promote_min_stage`` and the minimum request count has been served.
+   past ``promote_min_stage`` and the minimum total and candidate-served request
+   counts have been reached (so a shadow-cleared model still meets real users
+   before it takes all traffic).
 4. **Stage advance** -- the current stage has served its ``min_requests``.
 5. **Budget** -- ``max_requests`` reached without a verdict -> the policy's
    ``on_inconclusive`` action (rollback by default).
@@ -265,6 +267,7 @@ class RolloutController:
                 all_ok
                 and self._stage_index >= self.policy.promote_min_stage
                 and self.requests >= g.min_requests_before_promote
+                and self.candidate_requests >= g.min_candidate_requests_before_promote
             ):
                 return self._finish(Action.PROMOTE, "all metrics non-inferior")
 

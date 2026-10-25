@@ -109,6 +109,7 @@ class Guardrails(_Frozen):
     min_failure_attempts: int = Field(default=50, ge=1)
     max_requests: int = Field(default=200_000, ge=1)
     min_requests_before_promote: int = Field(default=0, ge=0)
+    min_candidate_requests_before_promote: int = Field(default=0, ge=0)
     on_inconclusive: OnInconclusive = OnInconclusive.ROLLBACK
 
 
