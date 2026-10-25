@@ -114,9 +114,9 @@ def test_cs_monitor_not_worse_is_revisable() -> None:
     for _ in range(200):
         base = rng.normal(40, 3, 100)
         mon.observe(base, base + 1.5 + rng.normal(0, 0.5, 100))
-        if mon.verdict is Verdict.WORSE:
+        if mon.check() is Verdict.WORSE:
             break
-    assert mon.verdict is Verdict.WORSE
+    assert mon.check() is Verdict.WORSE
 
 
 def test_fixed_horizon_decides_exactly_at_horizon() -> None:
