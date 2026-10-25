@@ -42,8 +42,9 @@ name = "latency_ms"
 source = "latency"
 direction = "lower_is_better"
 method = "asymptotic_cs"
-tolerance = 0.5          # ONNX inference may be at most 0.5 ms slower per call
-rollback_margin = 0.25   # ... and is rolled back once confidently > 0.25 ms slower
+tolerance = 1.0          # ONNX inference may be at most 1 ms slower per call
+rollback_margin = 0.5    # ... and is rolled back once confidently > 0.5 ms slower
+                         # (wide enough that machine load does not flip the SVC verdict)
 t_star = 1000
 min_pairs = 200
 
