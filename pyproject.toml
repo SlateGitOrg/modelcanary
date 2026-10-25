@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Progressive model-delivery router: shadow and canary rollouts gated by SPRT and always-valid confidence sequences."
 readme = "README.md"
 license = "MIT"
-authors = [{ name = "archit2501" }]
+authors = [{ name = "modelcanary contributors" }]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.0",

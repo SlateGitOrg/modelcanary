@@ -1,5 +1,7 @@
 # modelcanary
 
+[![CI](https://github.com/SlateGitOrg/modelcanary/actions/workflows/ci.yml/badge.svg)](https://github.com/SlateGitOrg/modelcanary/actions/workflows/ci.yml)
+
 Progressive delivery for ML models: a FastAPI gateway that serves ONNX models, runs a new
 model version in **shadow** and then as a growing **canary**, watches error rate, latency and a
 business metric with **sequential statistical tests** (Wald SPRT and always-valid confidence
@@ -340,8 +342,7 @@ The full log with costs is in [DECISIONS.md](DECISIONS.md). The ones that matter
   recompute every hash. Anchor the head hash externally for stronger guarantees.
 - **Demo business metric is simulated** (conversion probability depends on correctness), and the
   demo replays a 899-row pool with replacement, so it shows the mechanics, not production
-  performance. CI has not run yet (the workflow is committed but the repository has not been
-  pushed).
+  performance.
 
 ## Roadmap
 

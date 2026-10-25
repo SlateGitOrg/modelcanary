@@ -1,6 +1,6 @@
 # Decisions
 
-Rulings made while building, in the contract's format:
+Rulings made while building, in this format:
 `- Ruling: <what> — <why> — <cost if wrong>`.
 
 ## Statistics
