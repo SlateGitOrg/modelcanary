@@ -1,5 +1,6 @@
 """SPRT checked against analytic results (Wald identities, exact lattice DP)."""
 
+import itertools
 import math
 
 import numpy as np
@@ -48,7 +49,7 @@ def test_wald_oc_hits_nominal_rates_at_hypotheses() -> None:
 def test_wald_oc_is_monotone_decreasing_in_p() -> None:
     ps = np.linspace(0.3, 0.8, 26)
     oc = [wald_oc(float(p), P0, P1, ALPHA, BETA) for p in ps]
-    assert all(a > b for a, b in zip(oc, oc[1:], strict=False))
+    assert all(a > b for a, b in itertools.pairwise(oc))
 
 
 def test_wald_asn_at_zero_drift_uses_second_moment_formula() -> None:
@@ -66,7 +67,8 @@ def test_exact_error_rates_satisfy_wald_inequalities() -> None:
     h0 = exact_operating_characteristics(P0, P0, P1, ALPHA, BETA, max_n=3000)
     h1 = exact_operating_characteristics(P1, P0, P1, ALPHA, BETA, max_n=3000)
     alpha_true, beta_true = h0.p_accept_h1, h1.p_accept_h0
-    assert h0.p_undecided < 1e-9 and h1.p_undecided < 1e-9
+    assert h0.p_undecided < 1e-9
+    assert h1.p_undecided < 1e-9
     # Exact (not approximate) consequences of Wald's argument.
     assert alpha_true <= ALPHA / (1 - BETA)
     assert beta_true <= BETA / (1 - ALPHA)
@@ -110,7 +112,8 @@ def test_sprt_batch_equals_scalar_and_latches() -> None:
     for chunk in np.array_split(xs, 37):
         batch.update_many(chunk)
     assert scalar.decision is batch.decision is SPRTDecision.ACCEPT_H1
-    assert scalar.n == batch.n and scalar.successes == batch.successes
+    assert scalar.n == batch.n
+    assert scalar.successes == batch.successes
     assert scalar.llr == pytest.approx(batch.llr)
     frozen = batch.n
     batch.update_many(np.zeros(100, dtype=bool))
@@ -149,7 +152,8 @@ def test_discordant_sprt_detects_worse_and_accepts_equal() -> None:
     while worse.decision is SPRTDecision.CONTINUE:
         worse.update_pairs(rng.random(200) < 0.10, rng.random(200) < 0.16)
     assert worse.decision is SPRTDecision.ACCEPT_H1
-    assert worse.pairs > 0 and worse.discordant <= worse.pairs
+    assert worse.pairs > 0
+    assert worse.discordant <= worse.pairs
     equal = DiscordantPairSPRT(1.5, 0.05, 0.05)
     while equal.decision is SPRTDecision.CONTINUE:
         equal.update_pairs(rng.random(200) < 0.10, rng.random(200) < 0.10)
@@ -169,5 +173,6 @@ def test_discordant_sprt_stops_counting_at_decision_pair() -> None:
         DiscordantPairSPRT(2.0, 0.1, 0.1).update_pairs([1, 0], [1])
     fresh = DiscordantPairSPRT(2.0, 0.1, 0.1)
     fresh.update_pairs([0, 1], [0, 1])  # concordant only
-    assert fresh.pairs == 2 and fresh.discordant == 0
+    assert fresh.pairs == 2
+    assert fresh.discordant == 0
     assert math.isnan(DiscordantPairSPRT(2.0, 0.1, 0.1).candidate_error_rate)

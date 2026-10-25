@@ -23,7 +23,11 @@ Implemented:
 
 Both classes support ``update_many`` so the online gateway and the vectorised
 simulator share one implementation, and both optionally keep the running
-intersection of past intervals (still a valid CS, never wider).
+intersection of past intervals (still a valid CS, never wider).  If a new
+interval is disjoint from the running intersection -- an event of probability
+at most ``alpha`` for stationary data -- the intersection restarts from the
+new interval and ``resets`` is incremented, so a drifting stream cannot freeze
+a stale interval.
 """
 
 from __future__ import annotations
@@ -123,6 +127,7 @@ class MixtureCS:
         self.moments = RunningMoments()
         self._lower = -math.inf
         self._upper = math.inf
+        self.resets = 0  # times the running intersection became empty and was restarted
 
     @property
     def n(self) -> int:
@@ -163,8 +168,14 @@ class MixtureCS:
             return cur
         lower = max(self._lower, cur.lower)
         upper = min(self._upper, cur.upper)
-        if lower <= upper:  # an empty intersection is a (probability <= alpha) miscoverage
+        if lower <= upper:
             self._lower, self._upper = lower, upper
+        else:
+            # Disjoint from the running intersection: under stationarity this has
+            # probability <= alpha, so treat it as evidence of drift and restart the
+            # intersection from the current interval instead of freezing a stale one.
+            self._lower, self._upper = cur.lower, cur.upper
+            self.resets += 1
         return self.interval()
 
     def interval(self) -> Interval:
@@ -220,6 +231,7 @@ class BettingCS:
         self._bet_scale = 2.0 * math.log(2.0 / alpha)
         self._lower = 0.0
         self._upper = 1.0
+        self.resets = 0
 
     @property
     def n(self) -> int:
@@ -280,6 +292,9 @@ class BettingCS:
             new_upper = min(self._upper, upper)
             if new_lower <= new_upper:
                 self._lower, self._upper = new_lower, new_upper
+            else:  # disjoint: drift evidence, restart (see MixtureCS._refresh)
+                self._lower, self._upper = lower, upper
+                self.resets += 1
         else:
             self._lower, self._upper = lower, upper
         return self.interval()

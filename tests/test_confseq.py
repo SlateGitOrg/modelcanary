@@ -1,5 +1,6 @@
 """Confidence sequences checked against analytic identities and Monte-Carlo coverage."""
 
+import itertools
 import math
 
 import numpy as np
@@ -17,7 +18,9 @@ from modelcanary.stats.confseq import (
 )
 
 
-@pytest.mark.parametrize(("s", "t", "rho"), [(0.0, 10.0, 0.3), (5.0, 50.0, 0.2), (-12.0, 400.0, 0.05)])
+@pytest.mark.parametrize(
+    ("s", "t", "rho"), [(0.0, 10.0, 0.3), (5.0, 50.0, 0.2), (-12.0, 400.0, 0.05)]
+)
 def test_mixture_martingale_closed_form_matches_quadrature(s: float, t: float, rho: float) -> None:
     def integrand(lam: float) -> float:
         prior = math.exp(-lam * lam / (2 * rho * rho)) / (rho * math.sqrt(2 * math.pi))
@@ -39,7 +42,10 @@ def test_optimal_rho_minimises_radius_at_t_star() -> None:
     rhos = np.geomspace(1e-3, 1.0, 4000)
     radii = gaussian_mixture_radius(t_star, 1.0, rhos, alpha)  # type: ignore[arg-type]
     best = float(np.min(radii))
-    assert float(gaussian_mixture_radius(t_star, 1.0, optimal_rho(t_star, alpha), alpha)) <= best * 1.01
+    assert (
+        float(gaussian_mixture_radius(t_star, 1.0, optimal_rho(t_star, alpha), alpha))
+        <= best * 1.01
+    )
 
 
 def test_radius_is_vectorised_and_shrinks_like_sqrt_log_t_over_t() -> None:
@@ -95,8 +101,9 @@ def test_mixture_cs_intersection_and_edge_cases() -> None:
     widths = []
     for _ in range(20):
         widths.append(cs.update_many(rng.normal(size=50)).width)
-    assert all(a >= b for a, b in zip(widths, widths[1:], strict=False))
-    assert cs.n == 1001 and abs(cs.mean) < 0.2
+    assert all(a >= b for a, b in itertools.pairwise(widths))
+    assert cs.n == 1001
+    assert abs(cs.mean) < 0.2
     plain = MixtureCS(0.05, sigma=1.0, intersect=False)
     plain.update_many(rng.normal(size=10))
     assert plain.interval() == plain.current()
@@ -141,7 +148,8 @@ def test_betting_capital_is_a_martingale_at_the_true_mean() -> None:
 def test_betting_cs_respects_range_and_shrinks() -> None:
     rng = np.random.default_rng(4)
     cs = BettingCS(0.05, lo=-1.0, hi=1.0, grid_size=500)
-    assert cs.interval().lower == -1.0 and cs.interval().upper == 1.0
+    assert cs.interval().lower == -1.0
+    assert cs.interval().upper == 1.0
     assert math.isnan(cs.mean)
     first = cs.update_many(rng.uniform(-0.5, 0.7, 100))
     later = cs.update_many(rng.uniform(-0.5, 0.7, 4000))
@@ -152,7 +160,7 @@ def test_betting_cs_respects_range_and_shrinks() -> None:
         cs.update_many([2.0])
     for kwargs in ({"lo": 1.0, "hi": 0.0}, {"grid_size": 5}, {"c": 1.0}):
         with pytest.raises(ConfigError):
-            BettingCS(0.05, **kwargs)  # type: ignore[arg-type]
+            BettingCS(0.05, **kwargs)
 
 
 def test_betting_cs_degenerate_data_collapses_without_crashing() -> None:
@@ -161,3 +169,17 @@ def test_betting_cs_degenerate_data_collapses_without_crashing() -> None:
         iv = cs.update_many(np.ones(200))
     assert iv.upper == pytest.approx(1.0)
     assert iv.lower > 0.9
+
+
+@pytest.mark.parametrize("kind", ["mixture", "betting"])
+def test_disjoint_interval_restarts_intersection(kind: str) -> None:
+    rng = np.random.default_rng(12)
+    cs: MixtureCS | BettingCS = (
+        MixtureCS(0.05, t_star=200) if kind == "mixture" else BettingCS(0.05, grid_size=200)
+    )
+    cs.update_many(np.clip(rng.normal(0.2, 0.05, 2000), 0, 1))
+    assert cs.interval().upper < 0.5
+    for _ in range(40):  # the stream's mean jumps to 0.8
+        cs.update_many(np.clip(rng.normal(0.8, 0.05, 500), 0, 1))
+    assert cs.resets >= 1
+    assert cs.interval().lower > 0.3
