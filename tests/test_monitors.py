@@ -160,3 +160,31 @@ def test_monitor_rejects_misaligned_batches() -> None:
     mon = build_monitor(LAT, Strategy.SEQUENTIAL, 0.05, 0.05)
     with pytest.raises(ValueError, match="equal length"):
         mon.observe([1.0, 2.0], [1.0])
+
+
+def test_identical_candidate_is_cleared_by_discordance_bound() -> None:
+    mon = build_monitor(ERR, Strategy.SEQUENTIAL, 0.05, 0.05)
+    assert isinstance(mon, SPRTMonitor)
+    errors = (np.random.default_rng(6).random(5000) < 0.1).astype(float)
+    for chunk in np.array_split(errors, 50):
+        mon.observe(chunk, chunk)  # same model: every pair concordant
+        if mon.verdict is Verdict.NOT_WORSE:
+            break
+    assert mon.verdict is Verdict.NOT_WORSE
+    assert mon.test.discordant == 0  # the SPRT itself never moved
+    assert mon.discordance.interval().upper < ERR.tolerance
+
+
+def test_discordance_shortcut_is_revised_by_sprt() -> None:
+    spec = ERR.model_copy(update={"tolerance": 0.5, "min_pairs": 10})
+    mon = build_monitor(spec, Strategy.SEQUENTIAL, 0.05, 0.05)
+    rng = np.random.default_rng(8)
+    seen_not_worse = False
+    for _ in range(400):
+        base = rng.random(50) < 0.05
+        mon.observe(base, base | (rng.random(50) < 0.08))  # candidate adds errors
+        seen_not_worse |= mon.verdict is Verdict.NOT_WORSE
+        if mon.verdict is Verdict.WORSE:
+            break
+    assert seen_not_worse
+    assert mon.check() is Verdict.WORSE

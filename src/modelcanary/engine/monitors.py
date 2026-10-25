@@ -141,7 +141,20 @@ class Monitor(ABC):
 
 
 class SPRTMonitor(Monitor):
-    """Error-rate monitor using the discordant-pair SPRT (latches on decision)."""
+    """Error-rate monitor: discordant-pair SPRT plus a discordance-rate shortcut.
+
+    The SPRT only learns from discordant pairs, so a candidate that agrees with
+    the baseline on (almost) every request -- a re-export, a refactor -- would
+    never reach a decision.  Because the error-rate difference is bounded by the
+    discordance rate (``p_c - p_b = P(c wrong, b right) - P(b wrong, c right)
+    <= P(discordant)``), an always-valid upper bound on ``P(discordant)`` below
+    the metric's ``tolerance`` proves non-inferiority directly.  The
+    false-promotion budget is split equally between the SPRT's ``beta`` and that
+    bound (union bound), so the combined guarantee is unchanged.
+
+    ``WORSE`` and SPRT-``NOT_WORSE`` latch; shortcut-``NOT_WORSE`` keeps the SPRT
+    running and is revised if the SPRT later accepts H1.
+    """
 
     method_name = "sprt"
 
@@ -149,19 +162,28 @@ class SPRTMonitor(Monitor):
         super().__init__(spec, alpha_rollback, alpha_promotion)
         if spec.odds_ratio is None:
             raise ConfigError("SPRT monitor needs odds_ratio")
+        half = alpha_promotion / 2.0
         # alpha: P(declare worse | equal) ; beta: P(declare not-worse | OR = odds_ratio)
-        self.test = DiscordantPairSPRT(spec.odds_ratio, alpha_rollback, alpha_promotion)
+        self.test = DiscordantPairSPRT(spec.odds_ratio, alpha_rollback, half)
+        self.discordance = BettingCS(half, lo=0.0, hi=1.0, grid_size=1000)
 
     def _consume(self, base: NDArray[np.float64], cand: NDArray[np.float64]) -> int:
         if self.test.decision is not SPRTDecision.CONTINUE:
             return 0
         before = self.test.pairs
         decision = self.test.update_pairs(base > 0.5, cand > 0.5)
+        used = self.test.pairs - before
+        self.discordance.update_many((base[:used] > 0.5) != (cand[:used] > 0.5))
         if decision is SPRTDecision.ACCEPT_H1:
             self._verdict = Verdict.WORSE
-        elif decision is SPRTDecision.ACCEPT_H0:
+        elif decision is SPRTDecision.ACCEPT_H0 or (
+            self.discordance.n >= self.spec.min_pairs
+            and self.discordance.interval().upper < self.spec.tolerance
+        ):
             self._verdict = Verdict.NOT_WORSE
-        return self.test.pairs - before
+        else:
+            self._verdict = Verdict.CONTINUE
+        return used
 
     def _statistic(self) -> float:
         return self.test.inner.llr
