@@ -2,7 +2,8 @@
 
 Every monitor consumes aligned pairs ``(baseline_i, candidate_i)`` and reports
 
-* ``WORSE``      -- the candidate is confidently degraded (``delta > 0``): roll back;
+* ``WORSE``      -- the candidate is confidently degraded (``delta > rollback_margin``,
+  0 by default): roll back;
 * ``NOT_WORSE``  -- the degradation is confidently below the metric's tolerance;
 * ``CONTINUE``   -- not enough evidence yet.
 
@@ -192,10 +193,11 @@ class SPRTMonitor(Monitor):
 class ConfidenceSequenceMonitor(Monitor):
     """Monitor driven by an always-valid CS on the mean per-pair degradation.
 
-    ``WORSE`` when the lower bound exceeds 0; ``NOT_WORSE`` when the upper bound
-    is below the tolerance.  ``WORSE`` is absorbing, ``NOT_WORSE`` is not: the
-    CS keeps running, and because its coverage is simultaneous over time the
-    continued monitoring does not spend extra error budget.
+    ``WORSE`` when the lower bound exceeds the metric's ``rollback_margin``
+    (default 0); ``NOT_WORSE`` when the upper bound is below the tolerance.
+    ``WORSE`` is absorbing, ``NOT_WORSE`` is not: the CS keeps running, and
+    because its coverage is simultaneous over time the continued monitoring
+    does not spend extra error budget.
     """
 
     def __init__(self, spec: MetricSpec, alpha_rollback: float, alpha_promotion: float) -> None:
@@ -215,7 +217,7 @@ class ConfidenceSequenceMonitor(Monitor):
     def _consume(self, base: NDArray[np.float64], cand: NDArray[np.float64]) -> int:
         iv = self.cs.update_many(self._degradation(base, cand))
         if self.cs.n >= self.spec.min_pairs:
-            if iv.lower > 0.0:
+            if iv.lower > self.spec.rollback_margin:
                 self._verdict = Verdict.WORSE
             elif iv.upper < self.spec.tolerance:
                 self._verdict = Verdict.NOT_WORSE
@@ -237,7 +239,11 @@ class _ZTestMonitor(Monitor):
 
     def _ztest_verdict(self) -> Verdict:
         test = paired_z_test_from_moments(
-            self.diffs.n, self.diffs.mean, self.diffs.variance, self.spec.tolerance
+            self.diffs.n,
+            self.diffs.mean,
+            self.diffs.variance,
+            self.spec.tolerance,
+            self.spec.rollback_margin,
         )
         self._last_z = test.z_superiority
         if test.candidate_worse(self.alpha_rollback):

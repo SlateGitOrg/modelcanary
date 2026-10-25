@@ -115,3 +115,11 @@ def test_pair_buffer_drops_oldest_surplus() -> None:
     np.testing.assert_array_equal(b, [7.0])  # newest surplus kept
     with pytest.raises(ConfigError):
         PairBuffer(capacity=0)
+
+
+def test_rollback_margin_validation() -> None:
+    with pytest.raises(ConfigError, match="must not exceed"):
+        small_policy(metrics=[_metric(rollback_margin=2.0)])
+    sprt = _metric(source="error", method="sprt", odds_ratio=1.5, rollback_margin=0.01)
+    with pytest.raises(ConfigError, match="odds_ratio"):
+        small_policy(metrics=[sprt])

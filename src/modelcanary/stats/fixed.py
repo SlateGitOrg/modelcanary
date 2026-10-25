@@ -50,11 +50,11 @@ class PairedZTest:
     n: int
     mean: float
     standard_error: float
-    z_superiority: float  # (mean - 0) / se : large => candidate significantly worse
+    z_superiority: float  # (mean - worse_margin) / se : large => candidate significantly worse
     z_non_inferiority: float  # (mean - margin) / se : very negative => within margin
 
     def candidate_worse(self, alpha: float) -> bool:
-        """Reject ``H0: delta <= 0`` at level ``alpha``."""
+        """Reject ``H0: delta <= worse_margin`` at level ``alpha``."""
         return self.z_superiority > z_quantile(1.0 - alpha)
 
     def non_inferior(self, alpha: float) -> bool:
@@ -62,11 +62,14 @@ class PairedZTest:
         return self.z_non_inferiority < -z_quantile(1.0 - alpha)
 
 
-def paired_z_test_from_moments(n: int, mean: float, variance: float, margin: float) -> PairedZTest:
+def paired_z_test_from_moments(
+    n: int, mean: float, variance: float, margin: float, worse_margin: float = 0.0
+) -> PairedZTest:
+    """z statistics from summary moments; ``worse_margin`` shifts the "worse" null."""
     if n < 2:
         raise ValueError("need at least two pairs")
     se = math.sqrt(max(variance, 1e-300) / n)
-    return PairedZTest(n, mean, se, mean / se, (mean - margin) / se)
+    return PairedZTest(n, mean, se, (mean - worse_margin) / se, (mean - margin) / se)
 
 
 def paired_z_test(degradations: ArrayLike, margin: float) -> PairedZTest:

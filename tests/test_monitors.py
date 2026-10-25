@@ -188,3 +188,18 @@ def test_discordance_shortcut_is_revised_by_sprt() -> None:
             break
     assert seen_not_worse
     assert mon.check() is Verdict.WORSE
+
+
+def test_rollback_margin_tolerates_small_regressions() -> None:
+    lenient = LAT.model_copy(update={"rollback_margin": 1.0})
+    rng = np.random.default_rng(9)
+    for strategy in (Strategy.SEQUENTIAL, Strategy.PEEKING):
+        strict_mon = build_monitor(LAT, strategy, 0.05, 0.05)
+        lenient_mon = build_monitor(lenient, strategy, 0.05, 0.05)
+        for _ in range(100):
+            base = rng.normal(40, 1, 200)
+            cand = base + 0.5 + rng.normal(0, 0.3, 200)  # +0.5 ms: inside the margin
+            strict_mon.observe(base, cand)
+            lenient_mon.observe(base, cand)
+        assert strict_mon.check() is Verdict.WORSE
+        assert lenient_mon.check() is Verdict.NOT_WORSE

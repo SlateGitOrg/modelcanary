@@ -7,6 +7,7 @@ controller trusts a :class:`RolloutPolicy` instance.
 
 from __future__ import annotations
 
+import json
 import tomllib
 from enum import StrEnum
 from pathlib import Path
@@ -51,8 +52,12 @@ class MetricSpec(_Frozen):
     """One guarded metric.
 
     ``tolerance`` is the non-inferiority margin in metric units: the candidate is
-    "not worse" when its degradation is confidently below it.  Degradation is
-    ``candidate - baseline`` for lower-is-better metrics and the reverse otherwise.
+    "not worse" when its degradation is confidently below it.  ``rollback_margin``
+    (default 0, must not exceed ``tolerance``) is the degradation the candidate
+    must confidently exceed to be rolled back: 0 means "any confident
+    regression", ``tolerance`` turns the metric into a pure non-inferiority
+    test.  Degradation is ``candidate - baseline`` for lower-is-better metrics
+    and the reverse otherwise.
     """
 
     name: str = Field(min_length=1, pattern=r"^[a-z][a-z0-9_]*$")
@@ -60,6 +65,7 @@ class MetricSpec(_Frozen):
     direction: Direction
     method: Method
     tolerance: float = Field(gt=0)
+    rollback_margin: float = Field(default=0.0, ge=0)
     odds_ratio: float | None = Field(default=None, gt=1)
     bounds: tuple[float, float] | None = None
     t_star: float = Field(default=2000.0, gt=0)
@@ -76,6 +82,10 @@ class MetricSpec(_Frozen):
                 raise ValueError("method 'sprt' requires odds_ratio")
             if self.direction is not Direction.LOWER_IS_BETTER:
                 raise ValueError("error rate must be lower_is_better")
+            if self.rollback_margin != 0.0:
+                raise ValueError("method 'sprt' encodes its rollback point in odds_ratio")
+        if self.rollback_margin > self.tolerance:
+            raise ValueError("rollback_margin must not exceed tolerance")
         if self.method is Method.BETTING_CS:
             if self.bounds is None:
                 raise ValueError("method 'betting_cs' requires bounds = [lo, hi]")
@@ -174,3 +184,20 @@ class RolloutPolicy(_Frozen):
         except (OSError, tomllib.TOMLDecodeError) as exc:
             raise ConfigError(f"cannot read policy {path}: {exc}") from exc
         return cls.from_mapping(raw)
+
+    @classmethod
+    def from_file(cls, path: str | Path) -> RolloutPolicy:
+        """Load a policy from ``.toml`` or ``.json`` (chosen by extension)."""
+        p = Path(path)
+        if p.suffix.lower() == ".json":
+            try:
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ConfigError(f"cannot read policy {path}: {exc}") from exc
+            if not isinstance(raw, dict):
+                raise ConfigError(f"policy {path} must be a JSON object")
+            return cls.from_mapping(raw)
+        return cls.from_toml(p)
+
+    def to_json(self) -> str:
+        return json.dumps(self.model_dump(mode="json"), indent=2) + "\n"
