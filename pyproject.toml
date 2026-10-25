@@ -64,7 +64,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
-markers = ["slow: statistical Monte-Carlo tests (still run in make check)"]
 filterwarnings = ["error", "ignore::DeprecationWarning:skl2onnx.*", "ignore::DeprecationWarning:onnx.*"]
 
 [tool.coverage.run]
