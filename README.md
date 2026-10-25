@@ -292,7 +292,8 @@ Required test coverage of 85.0% reached. Total coverage: 98.62%
 
 Unit tests cover each statistical procedure, monitor, policy validation, pairing, the
 controller state machine, the audit chain (edit / delete / swap / re-hash attacks), the
-simulator and the harness; integration tests run the gateway with real ONNX models in-process
+simulator and the harness; Hypothesis property tests cover pairing conservation, router
+monotonicity, audit-chain round trips and SPRT chunking invariance; integration tests run the gateway with real ONNX models in-process
 (shadow, canary split stickiness, fallback, stale feedback, HTTP error mapping, Prometheus
 output) and the full demo through the CLI. Size: `find src -name '*.py' | xargs wc -l` →
 4455 lines of source, `find tests -name '*.py' | xargs wc -l` → 1987 lines of tests.
