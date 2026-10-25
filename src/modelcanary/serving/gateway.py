@@ -135,6 +135,7 @@ class Gateway:
         self.counters = counters if counters is not None else Counters()
         self._state = _State(production_id)
         self._lock = threading.RLock()
+        self._failure_logged: set[str] = set()  # rollouts whose first failure was logged
 
     # ------------------------------------------------------------------ state
 
@@ -262,7 +263,7 @@ class Gateway:
         try:
             pred = job.candidate.predict(job.features)
         except InferenceError as exc:
-            log.warning("shadow_inference_failed rollout=%s error=%s", ctrl.rollout_id, exc)
+            self._log_failure(ctrl, exc)
             for p in job.pending:
                 p.candidate_failed = True
             ctrl.record_candidate_attempts(n, n)
@@ -299,7 +300,7 @@ class Gateway:
             try:
                 cpred = candidate.predict(features[cand_rows])
             except InferenceError as exc:
-                log.warning("candidate_inference_failed rollout=%s error=%s", ctrl.rollout_id, exc)
+                self._log_failure(ctrl, exc)
                 fallback[cand_rows] = True
                 ctrl.record_candidate_attempts(int(cand_rows.size), int(cand_rows.size))
                 self.counters.inc(
@@ -337,6 +338,19 @@ class Gateway:
             )
         self._maybe_decide(ctrl)
         return PredictResult(out, ctrl.rollout_id)
+
+    def _log_failure(self, ctrl: RolloutController, exc: InferenceError) -> None:
+        """Log the first candidate failure of a rollout loudly, later ones at debug level."""
+        first_line = str(exc).splitlines()[0]
+        if ctrl.rollout_id in self._failure_logged:
+            log.debug("candidate_inference_failed rollout=%s error=%s", ctrl.rollout_id, first_line)
+            return
+        self._failure_logged.add(ctrl.rollout_id)
+        log.warning(
+            "candidate_inference_failed rollout=%s error=%s (further failures at debug level)",
+            ctrl.rollout_id,
+            first_line,
+        )
 
     # --------------------------------------------------------------- feedback
 
