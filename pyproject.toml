@@ -70,7 +70,7 @@ filterwarnings = ["error", "ignore::DeprecationWarning:skl2onnx.*", "ignore::Dep
 [tool.coverage.run]
 source = ["modelcanary"]
 branch = true
-omit = ["*/modelcanary/demo/*", "*/modelcanary/__main__.py"]
+omit = ["*/modelcanary/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true

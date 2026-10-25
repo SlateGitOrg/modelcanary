@@ -1,0 +1,58 @@
+# Rollout policy for `make demo` (real ONNX models on the UCI digits data).
+# Smaller stages than configs/default.toml so the demo finishes in about a minute.
+false_rollback_budget = 0.05
+false_promotion_budget = 0.05
+promote_min_stage = 1          # never promote from shadow: conversion is only observable live
+check_every = 25
+pair_buffer_capacity = 256
+
+[guardrails]
+max_candidate_failure_rate = 0.02
+min_failure_attempts = 50
+max_requests = 30000
+min_candidate_requests_before_promote = 500
+on_inconclusive = "rollback"
+
+[[stages]]
+name = "shadow"
+weight = 0.0
+shadow = true
+min_requests = 1000
+
+[[stages]]
+name = "canary-10"
+weight = 0.10
+min_requests = 2000
+
+[[stages]]
+name = "canary-50"
+weight = 0.50
+
+[[metrics]]
+name = "error_rate"
+source = "error"
+direction = "lower_is_better"
+method = "sprt"
+odds_ratio = 1.5
+tolerance = 0.02
+min_pairs = 100
+
+[[metrics]]
+name = "latency_ms"
+source = "latency"
+direction = "lower_is_better"
+method = "asymptotic_cs"
+tolerance = 0.5          # ONNX inference may be at most 0.5 ms slower per call
+rollback_margin = 0.25   # ... and is rolled back once confidently > 0.25 ms slower
+t_star = 1000
+min_pairs = 200
+
+[[metrics]]
+name = "conversion"
+source = "business"
+direction = "higher_is_better"
+method = "betting_cs"
+bounds = [0.0, 1.0]
+tolerance = 0.05
+grid_size = 500
+min_pairs = 200
