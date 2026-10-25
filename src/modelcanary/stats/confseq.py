@@ -18,7 +18,7 @@ Implemented:
   and Ramdas (2021, "Time-uniform central limit theory and asymptotic confidence
   sequences").  Valid for any finite-variance data in the asymptotic sense.
 * :class:`BettingCS` -- the hedged-capital betting CS of Waudby-Smith and Ramdas
-  (2023, "Estimating means of bounded random variables by betting", JRSS-B).
+  (2024, "Estimating means of bounded random variables by betting", JRSS-B).
   Non-asymptotic: valid at every ``t`` for data in a known bounded range.
 
 Both classes support ``update_many`` so the online gateway and the vectorised

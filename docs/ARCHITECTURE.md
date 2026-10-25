@@ -123,7 +123,7 @@ For data in `[0,1]` and each candidate mean `m` on a grid, two capital processes
 `K⁺_t(m) = Π(1 + λ⁺_i(m)(x_i − m))`, `K⁻_t(m) = Π(1 − λ⁻_i(m)(x_i − m))` use predictable
 bets `λ_i = sqrt(2 log(2/α) / (σ̂²_{i−1} i log(1+i)))` truncated at `c/m` and `c/(1−m)`.
 `(K⁺ + K⁻)/2` is a non-negative martingale under `μ = m`, so `{m : (K⁺+K⁻)/2 < 1/α}` is a
-`(1−α)` CS (Waudby-Smith & Ramdas, JRSS-B 2023). Differences of two Bernoulli outcomes are
+`(1−α)` CS (Waudby-Smith & Ramdas, JRSS-B 2024). Differences of two Bernoulli outcomes are
 mapped from `[-1, 1]`. Tests check coverage on Bernoulli streams, the martingale property
 `E[(K⁺+K⁻)/2] = 1` at the true mean by Monte-Carlo, shrinkage and degenerate inputs.
 Cost: O(G) time per observation and O(G) memory for a grid of G points (500-1000 here).
