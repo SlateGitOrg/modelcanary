@@ -88,9 +88,12 @@ def _print_decision(state: dict[str, Any]) -> None:
         "     metric        pairs  baseline   candidate  degradation  interval              verdict"
     )
     for m in d["metrics"]:
-        interval = (
-            f"[{_fmt(m['lower'])}, {_fmt(m['upper'])}]" if m["lower"] is not None else "(SPRT)"
-        )
+        if m["method"] == "sprt":
+            interval = f"(SPRT llr {_fmt(m['statistic'], 2)})"
+        elif m["lower"] is None:
+            interval = "(no data)"
+        else:
+            interval = f"[{_fmt(m['lower'])}, {_fmt(m['upper'])}]"
         print(
             f"     {m['metric']:<12} {m['pairs']:>6,}  {_fmt(m['baseline_mean']):>8}  "
             f"{_fmt(m['candidate_mean']):>9}  {_fmt(m['degradation']):>11}  "

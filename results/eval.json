@@ -1,0 +1,613 @@
+{
+  "config": {
+    "seeds": 1000,
+    "pilot_seeds": 20,
+    "batch_size": 500,
+    "scenarios": [
+      "better",
+      "better-error-only",
+      "equal",
+      "worse-error",
+      "worse-latency",
+      "worse-conversion",
+      "broken"
+    ],
+    "first_eval_seed": 1000000
+  },
+  "planning_sd": {
+    "error_rate": 0.4255408979318433,
+    "latency_ms": 44.591568242910874,
+    "conversion": 0.46032342389659736
+  },
+  "policy": {
+    "metrics": [
+      {
+        "name": "error_rate",
+        "source": "error",
+        "direction": "lower_is_better",
+        "method": "sprt",
+        "tolerance": 0.02,
+        "rollback_margin": 0.0,
+        "odds_ratio": 1.25,
+        "bounds": null,
+        "t_star": 2000.0,
+        "min_pairs": 100,
+        "planning_sd": 0.425541,
+        "grid_size": 500
+      },
+      {
+        "name": "latency_ms",
+        "source": "latency",
+        "direction": "lower_is_better",
+        "method": "asymptotic_cs",
+        "tolerance": 3.0,
+        "rollback_margin": 0.0,
+        "odds_ratio": null,
+        "bounds": null,
+        "t_star": 2000.0,
+        "min_pairs": 200,
+        "planning_sd": 44.591568,
+        "grid_size": 500
+      },
+      {
+        "name": "conversion",
+        "source": "business",
+        "direction": "higher_is_better",
+        "method": "betting_cs",
+        "tolerance": 0.02,
+        "rollback_margin": 0.0,
+        "odds_ratio": null,
+        "bounds": [
+          0.0,
+          1.0
+        ],
+        "t_star": 2000.0,
+        "min_pairs": 200,
+        "planning_sd": 0.460323,
+        "grid_size": 500
+      }
+    ],
+    "stages": [
+      {
+        "name": "shadow",
+        "weight": 0.0,
+        "shadow": true,
+        "min_requests": 2000
+      },
+      {
+        "name": "canary-5",
+        "weight": 0.05,
+        "shadow": false,
+        "min_requests": 4000
+      },
+      {
+        "name": "canary-25",
+        "weight": 0.25,
+        "shadow": false,
+        "min_requests": 8000
+      },
+      {
+        "name": "canary-50",
+        "weight": 0.5,
+        "shadow": false,
+        "min_requests": 0
+      }
+    ],
+    "guardrails": {
+      "max_candidate_failure_rate": 0.02,
+      "min_failure_attempts": 50,
+      "max_requests": 200000,
+      "min_requests_before_promote": 0,
+      "min_candidate_requests_before_promote": 500,
+      "on_inconclusive": "rollback"
+    },
+    "false_rollback_budget": 0.05,
+    "false_promotion_budget": 0.05,
+    "promote_min_stage": 1,
+    "check_every": 50,
+    "pair_buffer_capacity": 256
+  },
+  "strategies": [
+    {
+      "strategy": "sequential",
+      "false_promotion": {
+        "count": 2,
+        "n": 4000,
+        "rate": 0.0005,
+        "ci95": [
+          0.000137125874484715,
+          0.0018213931638308867
+        ]
+      },
+      "false_rollback": {
+        "count": 34,
+        "n": 3000,
+        "rate": 0.011333333333333334,
+        "ci95": [
+          0.008121563030961586,
+          0.015795010998774207
+        ]
+      },
+      "inconclusive": {
+        "count": 0,
+        "n": 7000,
+        "rate": 0.0,
+        "ci95": [
+          5.421010862427522e-20,
+          0.0005484989837577137
+        ]
+      },
+      "mean_requests_good": 39395.833333333336,
+      "mean_requests_worse": 7562.25,
+      "mean_candidate_exposure_worse": 2124.79125
+    },
+    {
+      "strategy": "fixed_horizon",
+      "false_promotion": {
+        "count": 1,
+        "n": 4000,
+        "rate": 0.00025,
+        "ci95": [
+          4.413136673759807e-05,
+          0.0014148674108364198
+        ]
+      },
+      "false_rollback": {
+        "count": 60,
+        "n": 3000,
+        "rate": 0.02,
+        "ci95": [
+          0.015569745484900102,
+          0.02565799435331241
+        ]
+      },
+      "inconclusive": {
+        "count": 0,
+        "n": 7000,
+        "rate": 0.0,
+        "ci95": [
+          5.421010862427522e-20,
+          0.0005484989837577137
+        ]
+      },
+      "mean_requests_good": 29088.333333333332,
+      "mean_requests_worse": 16343.625,
+      "mean_candidate_exposure_worse": 4543.00325
+    },
+    {
+      "strategy": "peeking",
+      "false_promotion": {
+        "count": 23,
+        "n": 4000,
+        "rate": 0.00575,
+        "ci95": [
+          0.0038346270062157226,
+          0.008613817507673137
+        ]
+      },
+      "false_rollback": {
+        "count": 509,
+        "n": 3000,
+        "rate": 0.16966666666666666,
+        "ci95": [
+          0.1566597148025029,
+          0.18351854226671144
+        ]
+      },
+      "inconclusive": {
+        "count": 0,
+        "n": 7000,
+        "rate": 0.0,
+        "ci95": [
+          5.421010862427522e-20,
+          0.0005484989837577137
+        ]
+      },
+      "mean_requests_good": 10829.0,
+      "mean_requests_worse": 2829.875,
+      "mean_candidate_exposure_worse": 294.39025
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario": "better",
+      "truth": "better",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 1000,
+        "n": 1000,
+        "rate": 1.0,
+        "ci95": [
+          0.9961731014136095,
+          1.0
+        ]
+      },
+      "mean_requests": 29152.5,
+      "median_requests": 29000.0,
+      "p90_requests": 29500.0,
+      "mean_candidate_requests": 9777.959
+    },
+    {
+      "scenario": "better",
+      "truth": "better",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 977,
+        "n": 1000,
+        "rate": 0.977,
+        "ci95": [
+          0.9657233030515149,
+          0.9846258356970685
+        ]
+      },
+      "mean_requests": 10054.0,
+      "median_requests": 9000.0,
+      "p90_requests": 14500.0,
+      "mean_candidate_requests": 1273.947
+    },
+    {
+      "scenario": "better",
+      "truth": "better",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 998,
+        "n": 1000,
+        "rate": 0.998,
+        "ci95": [
+          0.9927370411104123,
+          0.9994513678975429
+        ]
+      },
+      "mean_requests": 23146.5,
+      "median_requests": 21000.0,
+      "p90_requests": 37000.0,
+      "mean_candidate_requests": 6927.796
+    },
+    {
+      "scenario": "better-error-only",
+      "truth": "better",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 975,
+        "n": 1000,
+        "rate": 0.975,
+        "ci95": [
+          0.9633544581334902,
+          0.9830099882094389
+        ]
+      },
+      "mean_requests": 29090.0,
+      "median_requests": 29000.0,
+      "p90_requests": 29500.0,
+      "mean_candidate_requests": 9747.126
+    },
+    {
+      "scenario": "better-error-only",
+      "truth": "better",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 796,
+        "n": 1000,
+        "rate": 0.796,
+        "ci95": [
+          0.7699130750438999,
+          0.8198214009929571
+        ]
+      },
+      "mean_requests": 11432.5,
+      "median_requests": 10500.0,
+      "p90_requests": 18000.0,
+      "mean_candidate_requests": 1867.753
+    },
+    {
+      "scenario": "better-error-only",
+      "truth": "better",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 996,
+        "n": 1000,
+        "rate": 0.996,
+        "ci95": [
+          0.9897602795701941,
+          0.9984434370321067
+        ]
+      },
+      "mean_requests": 47804.0,
+      "median_requests": 42000.0,
+      "p90_requests": 84050.00000000001,
+      "mean_candidate_requests": 19154.756
+    },
+    {
+      "scenario": "broken",
+      "truth": "worse",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 501.0,
+      "median_requests": 500.0,
+      "p90_requests": 500.0,
+      "mean_candidate_requests": 0.0
+    },
+    {
+      "scenario": "broken",
+      "truth": "worse",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 501.0,
+      "median_requests": 500.0,
+      "p90_requests": 500.0,
+      "mean_candidate_requests": 0.0
+    },
+    {
+      "scenario": "broken",
+      "truth": "worse",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 501.0,
+      "median_requests": 500.0,
+      "p90_requests": 500.0,
+      "mean_candidate_requests": 0.0
+    },
+    {
+      "scenario": "equal",
+      "truth": "equal",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 965,
+        "n": 1000,
+        "rate": 0.965,
+        "ci95": [
+          0.9517130967996695,
+          0.9747278875149873
+        ]
+      },
+      "mean_requests": 29022.5,
+      "median_requests": 29000.0,
+      "p90_requests": 29500.0,
+      "mean_candidate_requests": 9713.354
+    },
+    {
+      "scenario": "equal",
+      "truth": "equal",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 718,
+        "n": 1000,
+        "rate": 0.718,
+        "ci95": [
+          0.6893170177459294,
+          0.7450144544704043
+        ]
+      },
+      "mean_requests": 11000.5,
+      "median_requests": 10500.0,
+      "p90_requests": 17500.0,
+      "mean_candidate_requests": 1787.134
+    },
+    {
+      "scenario": "equal",
+      "truth": "equal",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 972,
+        "n": 1000,
+        "rate": 0.972,
+        "ci95": [
+          0.9598295551975795,
+          0.9805578525368679
+        ]
+      },
+      "mean_requests": 47237.0,
+      "median_requests": 40750.0,
+      "p90_requests": 83000.0,
+      "mean_candidate_requests": 18864.536
+    },
+    {
+      "scenario": "worse-conversion",
+      "truth": "worse",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 1,
+        "n": 1000,
+        "rate": 0.001,
+        "ci95": [
+          0.0001765418290572713,
+          0.0056427029601604705
+        ]
+      },
+      "mean_requests": 29022.5,
+      "median_requests": 29000.0,
+      "p90_requests": 29500.0,
+      "mean_candidate_requests": 9713.354
+    },
+    {
+      "scenario": "worse-conversion",
+      "truth": "worse",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 23,
+        "n": 1000,
+        "rate": 0.023,
+        "ci95": [
+          0.015374164302931469,
+          0.0342766969484851
+        ]
+      },
+      "mean_requests": 9159.5,
+      "median_requests": 8500.0,
+      "p90_requests": 15000.0,
+      "mean_candidate_requests": 1162.329
+    },
+    {
+      "scenario": "worse-conversion",
+      "truth": "worse",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 2,
+        "n": 1000,
+        "rate": 0.002,
+        "ci95": [
+          0.000548632102457155,
+          0.007262958889587807
+        ]
+      },
+      "mean_requests": 25969.0,
+      "median_requests": 24000.0,
+      "p90_requests": 42500.0,
+      "mean_candidate_requests": 8351.466
+    },
+    {
+      "scenario": "worse-error",
+      "truth": "worse",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 22383.0,
+      "median_requests": 22500.0,
+      "p90_requests": 22500.0,
+      "mean_candidate_requests": 6391.62
+    },
+    {
+      "scenario": "worse-error",
+      "truth": "worse",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 1073.5,
+      "median_requests": 1000.0,
+      "p90_requests": 1500.0,
+      "mean_candidate_requests": 15.232
+    },
+    {
+      "scenario": "worse-error",
+      "truth": "worse",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 2813.5,
+      "median_requests": 2000.0,
+      "p90_requests": 7000.0,
+      "mean_candidate_requests": 144.019
+    },
+    {
+      "scenario": "worse-latency",
+      "truth": "worse",
+      "strategy": "fixed_horizon",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 13468.0,
+      "median_requests": 13500.0,
+      "p90_requests": 13500.0,
+      "mean_candidate_requests": 2067.039
+    },
+    {
+      "scenario": "worse-latency",
+      "truth": "worse",
+      "strategy": "peeking",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 585.5,
+      "median_requests": 500.0,
+      "p90_requests": 1000.0,
+      "mean_candidate_requests": 0.0
+    },
+    {
+      "scenario": "worse-latency",
+      "truth": "worse",
+      "strategy": "sequential",
+      "runs": 1000,
+      "promoted": {
+        "count": 0,
+        "n": 1000,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.003826898586390522
+        ]
+      },
+      "mean_requests": 965.5,
+      "median_requests": 1000.0,
+      "p90_requests": 1500.0,
+      "mean_candidate_requests": 3.68
+    }
+  ],
+  "runs": 21000
+}
