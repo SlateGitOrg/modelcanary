@@ -1,0 +1,64 @@
+# Default progressive-rollout policy used by the simulator and the evaluation.
+# Error budgets are split equally (Bonferroni) across the three metrics.
+false_rollback_budget = 0.05   # P(roll back | candidate truly not worse), all metrics combined
+false_promotion_budget = 0.05  # P(promote | candidate worse than tolerance on a metric)
+promote_min_stage = 1          # never promote straight from shadow (business metric unobserved)
+check_every = 50
+pair_buffer_capacity = 256
+
+[guardrails]
+max_candidate_failure_rate = 0.02
+min_failure_attempts = 50
+max_requests = 200000
+min_requests_before_promote = 0
+on_inconclusive = "rollback"
+
+[[stages]]
+name = "shadow"
+weight = 0.0
+shadow = true
+min_requests = 2000
+
+[[stages]]
+name = "canary-5"
+weight = 0.05
+min_requests = 4000
+
+[[stages]]
+name = "canary-25"
+weight = 0.25
+min_requests = 8000
+
+[[stages]]
+name = "canary-50"
+weight = 0.5
+
+[[metrics]]
+name = "error_rate"
+source = "error"
+direction = "lower_is_better"
+method = "sprt"
+odds_ratio = 1.25        # SPRT H1: candidate error odds 25% higher
+tolerance = 0.02         # absolute margin used by the fixed-horizon comparator
+planning_sd = 0.42       # sd of paired error differences (overwritten by `modelcanary tune`)
+
+[[metrics]]
+name = "latency_ms"
+source = "latency"
+direction = "lower_is_better"
+method = "asymptotic_cs"
+tolerance = 3.0          # candidate mean latency may be at most 3 ms slower
+t_star = 2000
+min_pairs = 200
+planning_sd = 33.0
+
+[[metrics]]
+name = "conversion"
+source = "business"
+direction = "higher_is_better"
+method = "betting_cs"
+bounds = [0.0, 1.0]
+tolerance = 0.02         # at most 2 points of conversion lost
+grid_size = 500
+min_pairs = 200
+planning_sd = 0.46
